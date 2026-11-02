@@ -145,7 +145,9 @@ async def get_gallery_images(request):
     scan_thread = threading.Thread(target=thread_target)
     scan_thread.start()
     # Wait result and process it.
-    result = result_queue.get() # BLOCKING call
+    # Local patch (2026-11-01): wait off the event loop; a blocking get() here froze the whole ComfyUI
+    # web server for minutes while 13k output PNGs were scanned.
+    result = await asyncio.get_running_loop().run_in_executor(None, result_queue.get)
     return on_scan_complete(result)
 
 
@@ -171,7 +173,7 @@ async def start_gallery_monitor(request):
         gallery_log("use_polling_observer", use_polling_observer)
         if monitor and monitor.thread and monitor.thread.is_alive():
             gallery_log("FileSystemMonitor: Monitor already running, stopping previous monitor.")
-            monitor.stop_monitoring()
+            await asyncio.get_running_loop().run_in_executor(None, monitor.stop_monitoring)  # local patch: observer.join() blocks
         if not os.path.isdir(full_monitor_path):
             return web.Response(status=400, text=f"Invalid relative_path: {relative_path}, path not found")
         for route in PromptServer.instance.app.router.routes():
@@ -197,7 +199,7 @@ async def stop_gallery_monitor(request):
     global monitor
     from .gallery_config import gallery_log
     if monitor and monitor.thread and monitor.thread.is_alive():
-        monitor.stop_monitoring()
+        await asyncio.get_running_loop().run_in_executor(None, monitor.stop_monitoring)  # local patch: observer.join() blocks
         monitor = None
     for route in PromptServer.instance.app.router.routes():
         if route.name == 'static_gallery_placeholder':

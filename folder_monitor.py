@@ -137,10 +137,11 @@ class FileSystemMonitor:
         self.interval = interval
         self.use_polling_observer = use_polling_observer
         self.extensions = extensions
+        # Local patch (2026-11-01): upstream had these swapped, so the default polled every file each second.
         if use_polling_observer:
-            self.observer = Observer()
-        else:
             self.observer = PollingObserver()
+        else:
+            self.observer = Observer()
 
         # Generate patterns from extensions if provided
         if self.extensions:
