@@ -9,6 +9,19 @@ export const BASE_PATH = getComfyApp() ? window.location.origin : "http://localh
 export const OPEN_BUTTON_ID = "comfy-ui-gallery-open-button";
 export const BASE_Z_INDEX = 3000;
 
+// Local patch (2026-11-01): download through a plain same-origin link to /Gallery/download, which answers
+// with Content-Disposition: attachment. Unlike fetch + blob (FileSaver), this works in iPad Safari, keeps the
+// LAN proxy's basic-auth session, and handles videos and audio as well as images.
+export function downloadFile(url: string, name: string) {
+    const link = document.createElement('a');
+    link.href = `${BASE_PATH}/Gallery/download?path=${encodeURIComponent(url)}`;
+    link.download = name;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+}
+
 function getComfyApp() {
     try {
         // @ts-ignore

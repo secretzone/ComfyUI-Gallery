@@ -243,6 +243,28 @@ async def delete_image(request):
         gallery_log(f"Error deleting image: {e}")
         return web.Response(status=500, text=str(e))
 
+@PromptServer.instance.routes.get("/Gallery/download")
+async def download_file(request):
+    """Local patch (2026-11-01): serve a gallery file as an attachment so a plain link downloads it.
+    iPad Safari ignores blob/FileSaver downloads and opens videos in its player; Content-Disposition
+    attachment makes it offer to save the file instead."""
+    from urllib.parse import quote
+    image_url = request.rel_url.query.get("path", "")
+    if not image_url.startswith("/static_gallery/"):
+        return web.Response(status=400, text="Invalid path format")
+    relative_path = image_url[len("/static_gallery/"):]
+    static_route = next((r for r in PromptServer.instance.app.router.routes() if getattr(r, 'name', None) == 'static_gallery_placeholder'), None)
+    static_dir = str(static_route.resource._directory) if static_route is not None else folder_paths.get_output_directory()
+    full_path = os.path.realpath(os.path.join(static_dir, relative_path))
+    if not full_path.startswith(os.path.realpath(static_dir) + os.sep):
+        return web.Response(status=403, text="Access denied: File outside of static directory")
+    if not os.path.isfile(full_path):
+        return web.Response(status=404, text="File not found")
+    name = os.path.basename(full_path)
+    return web.FileResponse(full_path, headers={
+        "Content-Disposition": f"attachment; filename=\"{name.encode('ascii', 'replace').decode()}\"; filename*=UTF-8''{quote(name)}",
+    })
+
 @PromptServer.instance.routes.post("/Gallery/move")
 async def move_image(request):
     """Endpoint to move an image to a new location, relative to the current gallery root (current_path)."""

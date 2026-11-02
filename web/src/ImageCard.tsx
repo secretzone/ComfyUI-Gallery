@@ -1,11 +1,12 @@
 import { Button, Image, Typography } from 'antd';
 import type { FileDetails } from './types';
 import InfoCircleOutlined from '@ant-design/icons/lib/icons/InfoCircleOutlined';
+import DownloadOutlined from '@ant-design/icons/lib/icons/DownloadOutlined';
 import SoundOutlined from '@ant-design/icons/lib/icons/SoundOutlined';
 import React, { useRef, useState } from 'react';
 import { useDrag, useEventListener } from 'ahooks';
 import { useGalleryContext } from './GalleryContext';
-import { BASE_PATH } from './ComfyAppApi';
+import { BASE_PATH, downloadFile } from './ComfyAppApi';
 
 export const ImageCardWidth = 350;
 export const ImageCardHeight = 450;
@@ -199,16 +200,30 @@ function ImageCard({
                 >
                     {image.name}
                 </Typography.Text>
-                <Button 
-                    color="cyan" 
-                    variant="filled" 
-                    icon={<InfoCircleOutlined />} 
-                    size={"middle"} 
-                    onClick={() => {
-                        onInfoClick(image.name);
-                        document.getElementById(image.url)?.click();
-                    }}
-                />
+                <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                    <Button
+                        color="cyan"
+                        variant="filled"
+                        icon={<DownloadOutlined />}
+                        size={"middle"}
+                        title="Download"
+                        aria-label={`Download ${image.name}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            downloadFile(image.url, image.name);
+                        }}
+                    />
+                    <Button
+                        color="cyan"
+                        variant="filled"
+                        icon={<InfoCircleOutlined />}
+                        size={"middle"}
+                        onClick={() => {
+                            onInfoClick(image.name);
+                            document.getElementById(image.url)?.click();
+                        }}
+                    />
+                </div>
             </div>
         </div>
     </>)

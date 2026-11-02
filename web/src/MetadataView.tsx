@@ -4,12 +4,11 @@ import { useState, useMemo, useCallback } from 'react';
 import type { FileDetails } from './types';
 import ReactJsonView from '@microlink/react-json-view';
 import Modal from 'antd/es/modal/Modal';
-import { ComfyAppApi, BASE_PATH, BASE_Z_INDEX } from './ComfyAppApi';
+import { ComfyAppApi, BASE_PATH, BASE_Z_INDEX, downloadFile } from './ComfyAppApi';
 import { useGalleryContext } from './GalleryContext';
 import Card from 'antd/es/card/Card';
 import CopyOutlined from '@ant-design/icons/lib/icons/CopyOutlined';
 import DownloadOutlined from '@ant-design/icons/lib/icons/DownloadOutlined';
-import { saveAs } from 'file-saver';
 
 const PROMPT_ROW_LIMIT = 6;
 
@@ -131,16 +130,9 @@ export function MetadataView({
         }
     }, [image.url]);
 
-    // Memoize download handler using FileSaver.js
-    const handleDownload = useCallback(async () => {
-        try {
-            const response = await fetch(`${BASE_PATH}${image.url}`, { mode: 'cors' });
-            if (!response.ok) throw new Error('Network response was not ok');
-            const blob = await response.blob();
-            saveAs(blob, image.name);
-        } catch (err) {
-            message.error('Failed to download file (CORS)');
-        }
+    // Local patch: a plain attachment link instead of fetch + FileSaver, so it also works on iPad Safari
+    const handleDownload = useCallback(() => {
+        downloadFile(image.url, image.name);
     }, [image.url, image.name]);
 
     // Memoize delete handler
@@ -293,7 +285,7 @@ export function MetadataView({
                                 />
                             </Tooltip>
                         )}
-                        {image.type === 'image' && (<Tooltip title="Download">
+                        {(<Tooltip title="Download">
                             <Button
                                 shape="circle"
                                 icon={<DownloadOutlined />}
